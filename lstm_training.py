@@ -5,9 +5,11 @@
 """
 import numpy as np
 import os
-from keras import optimizers
+# from keras import optimizers
+from tensorflow.keras import optimizers
 from keras.models import Model
-from keras.layers.normalization import BatchNormalization
+# from keras.layers.normalization import BatchNormalization
+from tensorflow.keras.layers import BatchNormalization
 from keras.layers import LSTM, Input, Multiply, Concatenate
 import random
 import matplotlib.pyplot as plt
@@ -75,6 +77,7 @@ def UttrAtten_AttenVec(atten):
     chunk_num = 11    # number of chunks splitted for a sentence (i.e., C)
     # Input & LSTM Layer
     inputs = Input((time_step, feat_num))
+    # print(inputs.shape)
     encode = LSTM(units=feat_num, activation='tanh', dropout=0.5, return_sequences=True)(inputs)
     encode = LSTM(units=feat_num, activation='tanh', dropout=0.5, return_sequences=False)(encode)
     encode = BatchNormalization()(encode)
@@ -136,17 +139,20 @@ atten_type = args['atten_type']
 
 
 # Paths Setting
-root_dir = '/media/winston/UTD-MSP/Speech_Datasets/MSP-PODCAST-Publish-1.6/Features/OpenSmile_lld_IS13ComParE/feat_mat/'
-label_dir = '/media/winston/UTD-MSP/Speech_Datasets/MSP-PODCAST-Publish-1.6/Labels/labels_concensus.csv'
+# root_dir = '/media/winston/UTD-MSP/Speech_Datasets/MSP-PODCAST-Publish-1.6/Features/OpenSmile_lld_IS13ComParE/feat_mat/'
+# label_dir = '/media/winston/UTD-MSP/Speech_Datasets/MSP-PODCAST-Publish-1.6/Labels/labels_concensus.csv'
+
+root_dir = '/content/drive/MyDrive/SER/Chunk-Level-Attention-SER/UTD-MSP/feat_mat/'
+label_dir = '/content/drive/MyDrive/SER/Chunk-Level-Attention-SER/UTD-MSP/labels_concensus.csv'
 
 params_train = {'batch_size': batch_size,
                 'split_set': 'Train',
-                'emo_attr': emo_attr,
+                # 'emo_attr': emo_attr,
                 'shuffle': True}
 
 params_valid = {'batch_size': batch_size,
-                'split_set': 'Validation', 
-                'emo_attr': emo_attr,   
+                'split_set': 'Validation',
+                # 'emo_attr': emo_attr,   
                 'shuffle': False}
 
 # Generators
@@ -175,7 +181,7 @@ elif atten_type == 'SelfAttenVec':
     model = UttrAtten_AttenVec(atten_selfMH(feat_num=130, C=11))
 elif atten_type == 'NonAtten':
     model = UttrAtten_NonAtten()
-#print(model.summary())
+# print(model.summary())
 
 # Model Compile Settings
 model.compile(optimizer=adam, loss=cc_coef)
@@ -185,7 +191,7 @@ model.fit_generator(generator=training_generator,
                     workers=12,
                     epochs=epochs, 
                     verbose=1,
-                    callbacks=callbacks_list)        
+                    callbacks=callbacks_list)    
 
 # Show training & validation loss
 v_loss = model.history.history['val_loss']

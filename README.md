@@ -1,3 +1,5 @@
+# Changes made in reference to the original repo
+This is an edited version of the original repo, where I have combined all three attributes: Activation, Dominance and Valence. All the attributes are simultaneously predicted in the output.
 # Chunk-Level Attention SER
 This is a Keras implementation of chunk-level speech emotion recognition (SER) framework in the [paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=9442335) for the MSP-Podcast corpus.
 

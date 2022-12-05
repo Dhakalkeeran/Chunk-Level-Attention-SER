@@ -19,9 +19,11 @@ if __name__=='__main__':
         os.mkdir('./NormTerm/')    
 
     # Get Label-Table & Data-Feature
-    label_table = pd.read_csv('/media/winston/UTD-MSP/Speech_Datasets/MSP-PODCAST-Publish-1.6/Labels/labels_concensus.csv')
-    data_root = '/media/winston/UTD-MSP/Speech_Datasets/MSP-PODCAST-Publish-1.6/Features/OpenSmile_lld_IS13ComParE/feat_mat/'
+    # label_table = pd.read_csv('/media/winston/UTD-MSP/Speech_Datasets/MSP-PODCAST-Publish-1.6/Labels/labels_concensus.csv')
+    # data_root = '/media/winston/UTD-MSP/Speech_Datasets/MSP-PODCAST-Publish-1.6/Features/OpenSmile_lld_IS13ComParE/feat_mat/'
     
+    label_table = pd.read_csv('/content/drive/MyDrive/SER/Chunk-Level-Attention-SER/UTD-MSP/labels_concensus.csv')
+    data_root = '/content/drive/MyDrive/SER/Chunk-Level-Attention-SER/UTD-MSP/feat_mat/'
     # Get Desired Attributes from Label-Table
     whole_fnames = (label_table['FileName'].values).astype('str')
     split_set = (label_table['Split_Set'].values).astype('str')

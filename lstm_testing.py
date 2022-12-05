@@ -5,7 +5,8 @@
 """
 import numpy as np
 from keras.models import Model
-from keras.layers.normalization import BatchNormalization
+# from keras.layers.normalization import BatchNormalization
+from tensorflow.keras.layers import BatchNormalization
 from keras.layers import LSTM, Input, Multiply
 import random
 import time
@@ -36,10 +37,15 @@ atten_type = args['atten_type']
 
 
 # Data/Label/Model Dir
-label_dir = '/media/winston/UTD-MSP/Speech_Datasets/MSP-PODCAST-Publish-1.6/Labels/labels_concensus.csv'
-root_dir = '/media/winston/UTD-MSP/Speech_Datasets/MSP-PODCAST-Publish-1.6/Features/OpenSmile_lld_IS13ComParE/feat_mat/'
+# label_dir = '/media/winston/UTD-MSP/Speech_Datasets/MSP-PODCAST-Publish-1.6/Labels/labels_concensus.csv'
+# root_dir = '/media/winston/UTD-MSP/Speech_Datasets/MSP-PODCAST-Publish-1.6/Features/OpenSmile_lld_IS13ComParE/feat_mat/'
+
+root_dir = '/content/drive/MyDrive/SER/Chunk-Level-Attention-SER/UTD-MSP/feat_mat/'
+label_dir = '/content/drive/MyDrive/SER/Chunk-Level-Attention-SER/UTD-MSP/labels_concensus.csv'
+
 #model_path = './Models/LSTM_model[epoch'+str(epochs)+'-batch'+str(batch_size)+']_'+atten_type+'_'+emo_attr+'_weights.h5'
-model_path = './trained_model_v1.6/LSTM_model[epoch'+str(epochs)+'-batch'+str(batch_size)+']_'+atten_type+'_'+emo_attr+'_weights.h5'
+# model_path = './trained_model_v1.6/LSTM_model[epoch'+str(epochs)+'-batch'+str(batch_size)+']_'+atten_type+'_'+emo_attr+'_weights.h5'
+model_path = './Models/LSTM_model[epoch'+str(epochs)+'-batch'+str(batch_size)+']_'+atten_type+'_'+emo_attr+'_weights.h5'
 
 # Loading Norm-Parameters
 Feat_mean = loadmat('./NormTerm/feat_norm_means.mat')['normal_para']
@@ -55,7 +61,7 @@ elif emo_attr == 'Val':
     Label_std = loadmat('./NormTerm/val_norm_stds.mat')['normal_para'][0][0] 
 
 # Regression Task
-test_file_path, test_file_tar = getPaths(label_dir, split_set='Test', emo_attr=emo_attr)
+test_file_path, test_file_tar = getPaths(label_dir, split_set='Test')
 #test_file_path, test_file_tar = getPaths(label_dir, split_set='Validation', emo_attr=emo_attr)
 
 # Setting Online Prediction Model Graph (predict sentence by sentence rather than a data batch)
@@ -137,6 +143,7 @@ for i in range(len(subset_idx)):
 # Online Testing Process for subsets of the test set
 Pred_Rsl = []
 Time_Cost = []
+ccc_values = []
 for ii in range(len(Subset_Idx)):
     Test_pred = []
     Test_label = []
@@ -157,21 +164,26 @@ for ii in range(len(Subset_Idx)):
         toc = time.time()
         Time_cost.append((toc-tic)*1000) # unit of time = 10^-3
         # Output prediction results    
-        pred = np.mean(pred)
+        # pred = np.mean(pred)
         Test_pred.append(pred)
         Test_label.append(test_file_tar[i])
-    Test_pred = np.array(Test_pred)
     Test_label = np.array(Test_label)
+    Test_pred = np.array(Test_pred).reshape(Test_label.shape)
     # Time Cost Result
     Time_cost = np.array(Time_cost)
     # Regression Task => Prediction & De-Normalize Target
     Test_pred = (Label_std*Test_pred)+Label_mean
-    Pred_Rsl.append(evaluation_metrics(Test_label, Test_pred)[0])
+    ccc_list, ccc = evaluation_metrics(Test_label, Test_pred)
+    ccc_values.append(ccc_list)
+    if str(ccc) == "nan":
+        continue
+    Pred_Rsl.append(ccc)
     Time_Cost.append(np.mean(Time_cost))
     
 # Subset results for Statistic Test
 Pred_Rsl = np.array(Pred_Rsl)
 Time_Cost = np.array(Time_Cost)
+ccc_values = np.array(ccc_values)
 print('Model_type: LSTM')
 print('Epochs: '+str(epochs))
 print('Batch_size: '+str(batch_size))
@@ -180,5 +192,11 @@ print('Chunk_type: dynamicOverlap')
 print('Atten_type: '+atten_type)
 print('Avg. CCC testing performance: '+str(np.mean(Pred_Rsl)))
 print('Std. CCC testing performance: '+str(np.std(Pred_Rsl)))
+print('Avg. CCC testing performance for act: '+str(np.mean(ccc_values[:, 0])))
+print('Std. CCC testing performance for act: '+str(np.std(ccc_values[:, 0])))
+print('Avg. CCC testing performance for dom: '+str(np.mean(ccc_values[:, 1])))
+print('Std. CCC testing performance for dom: '+str(np.std(ccc_values[:, 1])))
+print('Avg. CCC testing performance for val: '+str(np.mean(ccc_values[:, 2])))
+print('Std. CCC testing performance for val: '+str(np.std(ccc_values[:, 2])))
 print('Avg. Prediction Time(ms/uttr): '+str(np.mean(Time_Cost)))
 print('Std. Prediction Time(ms/uttr): '+str(np.std(Time_Cost)))

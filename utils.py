@@ -8,7 +8,7 @@ import numpy as np
 from keras import backend as K
 
 
-def getPaths(path_label, split_set, emo_attr):
+def getPaths(path_label, split_set):
     """
     This function is for filtering data by different constraints of label
     Args:
@@ -36,12 +36,10 @@ def getPaths(path_label, split_set, emo_attr):
             _label_val.append(emo_val[i])
         else:
             pass
-    if emo_attr == 'Act':
-        return np.array(_paths), np.array(_label_act) 
-    elif emo_attr == 'Dom':
-        return np.array(_paths), np.array(_label_dom)
-    elif emo_attr == 'Val':
-        return np.array(_paths), np.array(_label_val)
+    labels = []
+    for a, d, v in zip(_label_act, _label_dom, _label_val):
+        labels.append([a, d, v])
+    return np.array(_paths), np.array(labels)
 
 # Combining list of data arrays into a single large array
 def CombineListToMatrix(Data):
@@ -68,14 +66,31 @@ def CombineListToMatrix(Data):
     
 # evaluated by CCC metric
 def evaluation_metrics(true_value,predicted_value):
-    corr_coeff = np.corrcoef(true_value,predicted_value)
-    ccc = 2*predicted_value.std()*true_value.std()*corr_coeff[0,1]/(predicted_value.var() + true_value.var() + (predicted_value.mean() - true_value.mean())**2)
-    return(ccc,corr_coeff)
+    corr_coeff_list = []
+    ccc_list = []
+    for i in range(true_value.shape[-1]):
+        corr_coeff = np.corrcoef(true_value[:, i], predicted_value[:, i])
+        ccc = 2*predicted_value[:, i].std()*true_value[:, i].std()*corr_coeff[0,1]/(predicted_value[:, i].var() + true_value[:, i].var() + (predicted_value[:, i].mean() - true_value[:, i].mean())**2)
+        corr_coeff_list.append(corr_coeff)
+        ccc_list.append(ccc)
+    return (ccc_list, sum(ccc_list)/3)
+    
+    # corr_coeff = np.corrcoef(true_value,predicted_value)
+    # ccc = 2*predicted_value.std()*true_value.std()*corr_coeff[0,1]/(predicted_value.var() + true_value.var() + (predicted_value.mean() - true_value.mean())**2)
+    # return(ccc,corr_coeff)
 
 # CCC loss function
 def cc_coef(y_true, y_pred):
-    mu_y_true = K.mean(y_true)
-    mu_y_pred = K.mean(y_pred)                                                                                                                                                                                              
+    mu_y_true_act, mu_y_true_dom, mu_y_true_val = K.mean(y_true[:, 0]), K.mean(y_true[:, 1]), K.mean(y_true[:, 2])
+    mu_y_pred_act, mu_y_pred_dom, mu_y_pred_val = K.mean(y_pred[:, 0]), K.mean(y_pred[:, 1]), K.mean(y_pred[:, 2])
+    loss_act = calculate_loss(y_true[:, 0], y_pred[:, 0], mu_y_true_act, mu_y_pred_act)
+    loss_dom = calculate_loss(y_true[:, 1], y_pred[:, 1], mu_y_true_dom, mu_y_pred_dom)
+    loss_val = calculate_loss(y_true[:, 2], y_pred[:, 2], mu_y_true_val, mu_y_pred_val)
+    print(f"loss_act, loss_dom, loss_val: {loss_act}, {loss_dom}, {loss_val}")
+    alpha, beta = (0.6, 0.2)
+    return alpha * loss_act + beta * loss_dom + (1 - alpha - beta) * loss_val
+                                                                                                                                   
+def calculate_loss(y_true, y_pred, mu_y_true, mu_y_pred):
     return 1 - 2 * K.mean((y_true - mu_y_true) * (y_pred - mu_y_pred)) / (K.var(y_true) + K.var(y_pred) + K.mean(K.square(mu_y_pred - mu_y_true)))
 
 # split original batch data into batch small-chunks data with
@@ -96,7 +111,7 @@ def DynamicChunkSplitTrainingData(Batch_data, Batch_label, m, C, n):
     num_shifts = n*C-1  # Tmax = 11sec (for the MSP-Podcast corpus), 
                         # chunk needs to shift 10 times to obtain total C=11 chunks for each sentence
     Split_Data = []
-    Split_Label = np.array([])
+    Split_Label = Split_Label_act = Split_Label_dom = Split_Label_val = np.array([])
     for i in range(len(Batch_data)):
         data = Batch_data[i]
         label = Batch_label[i]       
@@ -112,8 +127,18 @@ def DynamicChunkSplitTrainingData(Batch_data, Batch_label, m, C, n):
         for iii in range(len(start_idx)):
             Split_Data.append( data[start_idx[iii]: end_idx[iii]] )    
         # Output Split Label
-        split_label = np.repeat( label,len(start_idx) )      
-        Split_Label = np.concatenate((Split_Label,split_label))
+        split_label_act = np.repeat( label[0],len(start_idx) )
+        split_label_dom = np.repeat( label[1],len(start_idx) )
+        split_label_val = np.repeat( label[2],len(start_idx) )
+        
+        Split_Label_act = np.concatenate((Split_Label_act, split_label_act))
+        Split_Label_dom = np.concatenate((Split_Label_dom, split_label_dom))
+        Split_Label_val = np.concatenate((Split_Label_val, split_label_val))
+    Split_Label = np.dstack((Split_Label_act, Split_Label_dom, Split_Label_val))
+    Split_Label = Split_Label.reshape(Split_Label.shape[1], Split_Label.shape[2])
+
+    # print(f"training_data_shape: {np.array(Split_Data).shape}")
+    # print(f"training_label_shape: {Split_Label.shape}")
     return np.array(Split_Data), Split_Label
 
 # split original batch data into batch small-chunks data with
@@ -145,5 +170,5 @@ def DynamicChunkSplitTestingData(Online_data, m, C, n):
             end_idx.extend([end_idx[0] + (iii+1)*step_size])    
         # Output Split Data
         for iii in range(len(start_idx)):
-            Split_Data.append( data[start_idx[iii]: end_idx[iii]] )    
+            Split_Data.append( data[start_idx[iii]: end_idx[iii]] )
     return np.array(Split_Data)

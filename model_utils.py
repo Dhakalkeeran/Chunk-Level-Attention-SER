@@ -84,6 +84,6 @@ def atten_selfMH(feat_num, C):
 def output_net(feat_num):
     inputs = Input((feat_num,))
     outputs = Dense(units=feat_num, activation='relu')(inputs)
-    outputs = Dense(units=1, activation='linear')(outputs)    
+    outputs = Dense(units=3, activation='linear')(outputs)    
     model = Model(inputs=inputs, outputs=outputs)
     return model
