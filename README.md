@@ -1,3 +1,4 @@
+# Changes made in reference to the original repo
 This is an edited version of the original repo, that worked out for me with some changes mainly for LSTM.
 
 # Chunk-Level Attention SER
