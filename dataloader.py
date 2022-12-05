@@ -6,6 +6,7 @@
 import numpy as np
 from scipy.io import loadmat
 import keras
+import tensorflow
 import random
 from utils import getPaths, DynamicChunkSplitTrainingData
 # Ignore warnings & Fix random seed
@@ -14,7 +15,7 @@ warnings.filterwarnings("ignore")
 random.seed(999)
 random_seed=99
 
-class DataGenerator_LLD(keras.utils.Sequence):
+class DataGenerator_LLD(tensorflow.keras.utils.Sequence):
     'Generates data for Keras'
     def __init__(self, root_dir, label_dir, batch_size, split_set, emo_attr, shuffle=True):
         'Initialization'
@@ -38,7 +39,8 @@ class DataGenerator_LLD(keras.utils.Sequence):
             self.Label_mean = loadmat('./NormTerm/val_norm_means.mat')['normal_para'][0][0]
             self.Label_std = loadmat('./NormTerm/val_norm_stds.mat')['normal_para'][0][0]         
         # Loading Data Paths/Labels
-        self._paths, self._labels = getPaths(label_dir, split_set, emo_attr)        
+        self._paths, self._labels = getPaths(label_dir, split_set, emo_attr)
+        self._paths, self._labels = self.check_valid_data(self._paths, self._labels)
         self.on_epoch_end()
         
     def __len__(self):
@@ -52,15 +54,35 @@ class DataGenerator_LLD(keras.utils.Sequence):
 
         # Find Batch list of Loading Paths
         list_paths_temp = [self._paths[k] for k in indexes]
-        list_labels_temp = [self._labels[k] for k in indexes]       
+        list_labels_temp = [self._labels[k] for k in indexes]
         
         # Generate data
         data, label = self.__data_generation(list_paths_temp, list_labels_temp)
-        return data, label        
+        return data, label
+        
+    def check_valid_data(self, paths, labels):
+        "Checks if data is valid which is the length of data greater or equal to 62"
+        new_paths = []
+        new_labels = []
+        for i in range(len(paths)):
+            # Store Norm-Data
+            x = loadmat(self.root_dir + paths[i].replace('.wav','.mat'))['Audio_data']
+            x = x[:,1:]                                     # remove time-info from the extracted OpenSmile LLDs
+            x = (x-self.Feat_mean)/self.Feat_std            # LLDs feature normalization (z-norm)
+            # Bounded NormFeat Ranging from -3~3 and assign NaN to 0
+            x[np.isnan(x)]=0
+            x[x>3]=3
+            x[x<-3]=-3
+            if np.array(x).shape[0] < 62:
+                continue
+            new_paths.append(paths[i])
+            new_labels.append(labels[i])
+        return new_paths, new_labels
 
     def on_epoch_end(self):
         'Updates indexes after each epoch'
         _paths, _labels = getPaths(self.label_dir, self.split_set, self.emo_attr)
+        _paths, _labels = self.check_valid_data(_paths, _labels)
         self.indexes = np.arange(len(_paths))
         if self.shuffle == True:
             np.random.seed(random_seed)
@@ -83,6 +105,10 @@ class DataGenerator_LLD(keras.utils.Sequence):
             x[x<-3]=-3            
             # Store Norm-Label
             y = (list_labels_temp[i]-self.Label_mean)/self.Label_std
+            # if np.array(x).shape[0] < 62:
+            #     print(f"Inside Data generation, x: {np.array(x).shape}")
+            #     print(f"Inside Data generation, y: {np.array(y).shape}")
+            #     continue
             batch_x.append(x)
             batch_y.append(y)
 

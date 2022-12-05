@@ -5,7 +5,8 @@
 """
 import numpy as np
 from keras.models import Model
-from keras.layers.normalization import BatchNormalization
+# from keras.layers.normalization import BatchNormalization
+from tensorflow.keras.layers import BatchNormalization
 from keras.layers import LSTM, Input, Multiply
 import random
 import time
@@ -36,10 +37,15 @@ atten_type = args['atten_type']
 
 
 # Data/Label/Model Dir
-label_dir = '/media/winston/UTD-MSP/Speech_Datasets/MSP-PODCAST-Publish-1.6/Labels/labels_concensus.csv'
-root_dir = '/media/winston/UTD-MSP/Speech_Datasets/MSP-PODCAST-Publish-1.6/Features/OpenSmile_lld_IS13ComParE/feat_mat/'
+# label_dir = '/media/winston/UTD-MSP/Speech_Datasets/MSP-PODCAST-Publish-1.6/Labels/labels_concensus.csv'
+# root_dir = '/media/winston/UTD-MSP/Speech_Datasets/MSP-PODCAST-Publish-1.6/Features/OpenSmile_lld_IS13ComParE/feat_mat/'
+
+root_dir = '/content/drive/MyDrive/SER/Chunk-Level-Attention-SER/UTD-MSP/feat_mat/'
+label_dir = '/content/drive/MyDrive/SER/Chunk-Level-Attention-SER/UTD-MSP/labels_concensus.csv'
+
 #model_path = './Models/LSTM_model[epoch'+str(epochs)+'-batch'+str(batch_size)+']_'+atten_type+'_'+emo_attr+'_weights.h5'
-model_path = './trained_model_v1.6/LSTM_model[epoch'+str(epochs)+'-batch'+str(batch_size)+']_'+atten_type+'_'+emo_attr+'_weights.h5'
+# model_path = './trained_model_v1.6/LSTM_model[epoch'+str(epochs)+'-batch'+str(batch_size)+']_'+atten_type+'_'+emo_attr+'_weights.h5'
+model_path = './Models/LSTM_model[epoch'+str(epochs)+'-batch'+str(batch_size)+']_'+atten_type+'_'+emo_attr+'_weights.h5'
 
 # Loading Norm-Parameters
 Feat_mean = loadmat('./NormTerm/feat_norm_means.mat')['normal_para']

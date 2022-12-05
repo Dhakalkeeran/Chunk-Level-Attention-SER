@@ -1,3 +1,5 @@
+This is an edited version of the original repo, that worked out for me with some changes mainly for LSTM.
+
 # Chunk-Level Attention SER
 This is a Keras implementation of chunk-level speech emotion recognition (SER) framework in the [paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=9442335) for the MSP-Podcast corpus.
 
